@@ -1,0 +1,98 @@
+---
+title: 'Data Analytics: Lab 2'
+author: "Brendan Donnelly"
+date: "October 2, 2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Lab 2a
+
+##Measures of central tendancy ro EPI,DALY var
+```{r}
+EPI<-read.csv("/Users/donneb/Documents/DataAnalytics/EPI_data.csv")
+print("EPI Variable Summary")
+summary(EPI$EPI)#stats
+fivenum(EPI$EPI, na.rm = T)
+
+print("DALY Variable Summary")
+summary(EPI$DALY)#stats
+fivenum(EPI$DALY, na.rm = T)
+
+hist(EPI$EPI, breaks = 10)
+hist(EPI$DALY, breaks = 10)
+
+```
+#Comparing ENVHEALTH and ECOSYSTEM's Relationship
+
+### boxplot,normal distribution plot comparing
+```{r clim}
+#boxplot
+boxplot(EPI$ENVHEALTH, EPI$ECOSYSTEM)
+
+#normal dist plots
+qqplot(EPI$ENVHEALTH, EPI$ECOSYSTEM)
+```
+# Determining Most Important Factor in EPI Regression
+
+##Linear and Least Squares ENVHEALTH
+```{r reg}
+ENVHEALTH <- EPI$ENVHEALTH
+DALY <- EPI$DALY
+AIR_H<- EPI$AIR_H
+WATER_H<- EPI$WATER_H
+
+boxplot(ENVHEALTH,DALY,AIR_H,WATER_H)
+names = c("ENVHEALTH", "DALY", "AIR_H", "WATER_H")
+
+
+lmENVH<-lm(ENVHEALTH~DALY+AIR_H+WATER_H)
+lmENVH
+summary(lmENVH)
+cENVH<-coef(lmENVH)
+
+DALYNEW<-c(seq(5,95,5))
+AIR_HNEW<-c(seq(5,95,5))
+WATER_HNEW<-c(seq(5,95,5))
+
+
+NEW<-data.frame(DALYNEW,AIR_HNEW,WATER_HNEW)
+pENV<- predict(lmENVH,NEW,interval = "pred")
+cENV<- predict(lmENVH,NEW,interval = "conf")
+```
+#regression on AIR_E
+```{r reg}
+AIR_E <- EPI$AIR_E
+
+boxplot(AIR_E,DALY,AIR_H,WATER_H)
+names = c("AIR_E", "DALY", "AIR_H", "WATER_H")
+
+
+lmAIR_E<-lm(AIR_E~DALY+AIR_H+WATER_H)
+lmAIR_E
+summary(lmAIR_E)
+cAIR_E<-coef(lmAIR_E)
+
+pENV<- predict(lmAIR_E,NEW,interval = "prediction")
+cENV<- predict(lmAIR_E,NEW,interval = "confidence")
+
+```
+#regression on CLIMATE
+```{r reg}
+CLIMATE <- EPI$CLIMATE
+
+boxplot(CLIMATE,DALY,AIR_H,WATER_H)
+names = c("CLIMATE", "DALY", "AIR_H", "WATER_H")
+
+
+lmCLIMATE<-lm(CLIMATE~DALY+AIR_H+WATER_H)
+lmCLIMATE
+summary(lmCLIMATE)
+cCLIMATE<-coef(lmCLIMATE)
+
+pENV<- predict(lmCLIMATE,NEW,interval = "prediction")
+cENV<- predict(lmCLIMATE,NEW,interval = "confidence")
+
+```
+
