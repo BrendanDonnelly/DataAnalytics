@@ -1,0 +1,99 @@
+---
+title: 'Data Analytics: Titanic RPart, HClust, R Forest '
+author: "Brendan Donnelly"
+date: "October 30, 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r message=FALSE, warning = FALSE}
+#to remove lists in env
+#remove(list = ls())
+library(ISLR)
+library(tidyverse)
+library(rpart)
+library(tree)
+library(party)
+library(randomForest)
+library(caret)
+library(e1071)
+library(titanic)
+
+
+#Used data from Titanic library, came w/ titanic train and test set, no need for seed creation
+data("titanic_train")
+data("titanic_test")
+
+#remove NA
+titanic_train <- na.omit(titanic_train)
+titanic_test <- na.omit(titanic_test)
+
+#convert male, female to 1,0
+titanic_train <- titanic_train %>%
+  mutate(Sex = factor(Sex, 
+                      levels = c("male","female"),
+                      labels = c(1,0)))
+titanic_test <- titanic_test %>%
+  mutate(Sex = factor(Sex, 
+                      levels = c("male","female"),
+                      labels = c(1,0)))
+
+```
+
+
+# RPart, Ctree
+```{r warning = FALSE}
+titanic_rpart <- rpart(Survived ~ ., data = titanic_train)
+plot(titanic_rpart)
+
+require(party)
+treeTitanic<- ctree(Survived~ Pclass + Age + Fare + Sex, data = titanic_train)
+plot(treeTitanic)
+
+tr<- tree(Survived~  Pclass + Age + Fare + Sex, data = titanic_train)
+tr$frame
+plot(tr)
+text(tr)
+
+cforest(Survived~  Pclass + Age + Fare + Sex, data = titanic_train, controls=cforest_control(mtry=2, mincriterion=0))
+```
+```{r rforest, warning = FALSE}
+#get tid of non numeric/int/dbls
+train_y <- titanic_train[][2]
+train_X <- titanic_train[c(-2,-4,-9, -11, -12)]
+
+#convert y to number
+train_y[,'Survived'] <- as.numeric(train_y[,'Survived'])
+
+
+fitTitanic <- randomForest(Survived~ Pclass + Age + Fare + Sex, data = titanic_train, importance = TRUE)
+print(fitTitanic) 	# view results
+importance(fitTitanic) # importance of each predictor
+varImpPlot(fitTitanic)
+
+plot(fitTitanic)
+getTree(fitTitanic,1, labelVar=TRUE)
+ 
+# look at rfcv
+#prediction <-predict(fitTitanic, train_X)
+#confusionMatrix(prediction, train_y$Survived)
+```
+
+```{r hclust, warning = FALSE}
+d<- dist(titanic_train, method = "euclidean")
+hcl <- hclust(d, method = "complete")
+plot(hcl, cex = 0.001, hang = -1)
+
+
+#only factoring non-categorical , non-chars
+d2<- dist(train_X, method = "euclidean")
+hcl <- hclust(d2, method = "complete")
+plot(hcl, cex = 0.001, hang = -1)
+```
+
+
+
+
+
+
