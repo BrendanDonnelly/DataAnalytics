@@ -1,0 +1,25 @@
+---
+title: 'Data Analytics: Lab Heatmaps, Dimension Reduction, PCA '
+author: "Brendan Donnelly"
+date: "October 2, 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+wine_data <- read.table("wine.data", sep = ",")
+
+colnames(wine_data)<- c("Cvs","Alcohol","Malic_Acid","Ash","Alcalinity_of_Ash",
+                        "Magnesium", "Total_Phenols", "Flavanoids", "NonFlavanoidPhenols",
+                        "Proanthocyanins", "Color_Intenstity", "Hue", "OD280/OD315_of_Diluted_Wine",
+                        "Proline")
+head(wine_data)
+tail(wine_data)
+heatmap(cor(wine_data),Rowv=NA,Colv=NA)
+cultivar_classes <- factor(wine_data$Cvs)
+```
+```{r pca}
+wine_data_pca <- prcomp(scale(wine_data[,-1]))
+summary(wine_data_pca)
+```
