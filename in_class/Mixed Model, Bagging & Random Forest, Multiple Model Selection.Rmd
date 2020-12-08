@@ -1,0 +1,250 @@
+---
+title: "Mixed Model, Bagging & Random Forest, Multiple Model Selection"
+author: "Brendan Donnelly"
+date: "December 8, 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+#to remove lists in env
+#remove(list = ls())
+
+#install.packages('lme4')
+#install.packages('lmer')
+library(lme4)
+#library(lmer)
+library(MASS)
+# Now, you have the function lmer() available to you, which is the mixed model
+# equivalent of the function lm()
+
+# obtain the data
+politeness <- read.csv("http://www.bodowinter.com/uploads/1/2/9/3/129362560/politeness_data.csv")
+
+politeness
+
+#missing val check
+which(is.na(politeness$frequency))
+# missing val in row 39
+
+boxplot(frequency ~ attitude*gender, col=c("white","lightgray"),politeness)
+```
+
+# LMER model
+```{r}
+politeness.model = lmer(frequency ~ attitude + (1|subject) + (1|scenario), data = politeness)
+
+#summary of model
+summary(politeness.model)
+
+```
+
+```{r}
+library(MASS)
+library(nlme)
+data(oats)
+names(oats) = c('block', 'variety', 'nitrogen', 'yield')
+oats$mainplot= oats$variety
+oats$subplot= oats$nitrogen
+summary(oats)
+
+library(nlme)
+m1.nlme = lme(yield ~ variety*nitrogen,random = ~ 1|block/mainplot,data = oats)
+summary(m1.nlme)
+anova(m1.nlme)
+```
+```{r}
+# Fitting a Regression Trees
+library(MASS)
+library(tree)
+set.seed(1)
+# Read the documentation for the Boston Dataset.
+head(Boston)
+train = sample(1:nrow(Boston), nrow(Boston)/2)
+tree.boston= tree(medv~., Boston, subset = train)
+summary(tree.boston)
+# Note that the output summary() indicates that only three of the variables have been # used to constructing the tree. In the context of a regression tree,  # the deviance is simply the sum of squared errors for the tree.
+
+# Regression Tree
+tree(formula = medv~. , data = Boston, subset = train)
+# We now plot the tree
+plot(tree.boston)
+text(tree.boston, pretty = 0)
+# The variable "lstat" measure the percentage of the individuals with lower socioeconimicsstatus.
+# The tree indicates that the lower values of lstatcorresponds to more expensive houese.
+# Now we use the cv.tree() function to see whether pruning the tree will # improve performance.
+help("cv.tree")
+cv.boston=cv.tree(tree.boston)
+plot(cv.boston$size,cv.boston$dev,typ='b')
+
+#PRUNE
+#In this case, the most complex tree is selected by cross-validation.
+# However, if we wish to prune the tree, we could do so as follows, 
+#using the prune.tree() function
+help("prune.tree") 
+# Read the documentation of the prune.tree() function.
+prune.boston=prune.tree(tree.boston,best=5)
+# best= integer requesting the size (i.e.number of terminal nodes) of a specific # subtree in the cost-complexity sequence to be returned. # This is an alternative way to select a subtree than by supplying a scalar cost-complexity parameter k.# If there is no tree in the sequence of the requested size, the next largest is returned.
+plot(prune.boston)
+text(prune.boston,pretty=0)
+
+# we use the unpruned tree to make predictions on the test set.
+yhat=predict(tree.boston,newdata=Boston[-train ,])
+boston.test=Boston[-train ,"medv"]
+plot(yhat,boston.test)
+# adding the abline()
+abline(0,1)
+mean((yhat-boston.test)^2)
+# In other words, the test set MSE associated with the regression tree is 25.05.
+# The square root of the MSE is therefore around 25.05
+# The square root of the MSE is therefore around 5.005,
+# indicating that this model leads to test predictions that # are within around $5, 005 of the true median home value for the suburb
+```
+
+```{r}
+library(randomForest)
+set.seed(1)
+bag.boston= randomForest(medv~., data=Boston, subset = train, mtry=13, importance= TRUE)
+bag.boston
+
+# The argument mtry=13 indicates that all 13 predictors should be considered# for each split of the tree—in other words, that bagging should be done.
+# How well does this bagged model perform on the test set?
+yhat.bag= predict(bag.boston,newdata=Boston[-train ,])
+plot(yhat.bag, boston.test)
+abline(0,1)
+mean((yhat.bag-boston.test)^2)
+
+
+# The test set MSE associated with the bagged regression tree is 13.16, 
+#almost half that obtained using an optimally-pruned single tree.
+#We could change the number of trees grown by randomForest() using the ntreeargument:
+bag.boston=randomForest(medv~.,data=Boston,subset=train, mtry=13,ntree=25)
+yhat.bag=predict(bag.boston,newdata=Boston[-train ,])
+mean((yhat.bag-boston.test)^2)
+
+```
+
+
+```{r}
+set.seed(1)
+rf.boston=randomForest(medv~.,data=Boston,subset=train,mtry=6,importance =TRUE)
+yhat.rf= predict(rf.boston,newdata=Boston[-train ,])
+mean((yhat.rf-boston.test)^2)
+# The test set MSE is 11.31; 
+# this indicates that random forests yielded an improvement over bagging in this case.
+# Using the importance() function, we can view the importance of each variable
+
+importance (rf.boston)
+varImpPlot(rf.boston)
+```
+
+```{r}
+#install.packages("caret", dependencies = c("Depends","Suggests"))
+#install.packages("ellipse")
+library(ellipse)
+library(caret)
+data(iris)
+dataset<- iris
+head(dataset)
+
+# 80-20 split
+validation_index<-createDataPartition(dataset$Species, p=0.80, list=FALSE)
+validation <-dataset[-validation_index,]
+
+# remaining 80% of data to training and testing the models
+dataset <-dataset[validation_index,]
+dim(dataset)
+
+# attribute types
+sapply(dataset, class)
+head(dataset)
+
+# list the levels for the class
+levels(dataset$Species)
+
+# summarize the class dist
+percentage <-prop.table(table(dataset$Species)) * 100
+cbind(freq=table(dataset$Species), percentage=percentage)
+
+summary(dataset)
+x <- dataset[,1:4]
+y <- dataset[,5]
+
+#boxplot per attr.
+par(mfrow=c(1,4))
+for(i in 1:4){
+  boxplot(x[,i], main = names(iris)[i])
+}
+
+#barplot class breakdown
+plot(y)
+
+#Multovariate Plots
+featurePlot(x=x, y=y, plot ="ellipse")
+featurePlot(x=x, y=y, plot="box")
+scales <- list(x=list(relation ="free"), y=list(relation = "free"))
+featurePlot(x=x,y=y,plot="density",scales=scales)
+
+```
+
+#Building many Models
+```{r}
+#10 fold cross validation 
+control <- trainControl(method="cv", number = 10)
+metric = "Accuracy"
+
+#Build  Models
+
+#a) linear algorithms
+set.seed(7)
+fit.lda <- train(Species~., data=dataset, method = "lda", metric=metric, trControl=control)
+
+#b) nonlinear alg
+#CART
+set.seed(7)
+fit.cart <- train(Species~., data=dataset, method = "rpart", metric=metric, trControl=control)
+#kNN
+set.seed(7)
+fit.knn <- train(Species~., data=dataset, method = "knn", metric=metric, trControl=control)
+
+#c) advanced algorithms
+#SVM
+set.seed(7)
+fit.svm <- train(Species~., data=dataset, method = "svmRadial", metric=metric, trControl=control)
+#Random Forest
+set.seed(7)
+fit.rf <- train(Species~., data=dataset, method = "rf", metric=metric, trControl=control)
+```
+
+
+```{r}
+#summarize acc
+results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf))
+summary(results)
+
+#compare
+dotplot(results)
+```
+
+```{r}
+#summarize Best Model
+print(fit.lda)
+
+#estimate skill of LDA on validation dataset
+
+predictions<- predict(fit.lda, validation)
+
+confusionMatrix(predictions, validation$Species)
+# Read: What is Kappa: https://www.r-bloggers.com/k-is-for-cohens-kappa/
+
+#Future Work: Review Code Snippets:
+# https://aquarius.tw.rpi.edu/html/DA/group4/
+#•lab1_loess1.R
+#•lab1_loess2.R
+#•lab1_loess3.R
+#•lab1_splines1.R
+#•lab1_splines2.R
+#•lab1_splines3.R
+#•Lab2_lda1.R
+```
