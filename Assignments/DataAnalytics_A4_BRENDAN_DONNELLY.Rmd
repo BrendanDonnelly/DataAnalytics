@@ -163,7 +163,7 @@ Alot of cleaning was done here to use the data in a reggression model. The $ and
 
 ```{r goog}
 #had to create account + key for API calls. Think its free up to certain limit
-register_google(key = "AIzaSyDFb74sBhynWSdREsi612Ket9xnFHxVHGU")
+register_google(key = "********************************")
 
 
 #commented out to reduce API calls
