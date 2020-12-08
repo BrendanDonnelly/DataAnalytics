@@ -1,0 +1,227 @@
+---
+title: 'Data Analytics: Lab 4'
+author: "Brendan Donnelly"
+date: "October 2, 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# heatmap, dendograms
+```{r}
+set.seed(12345)
+par(mar=rep(0,2,4))
+data_Matrix <- matrix(rnorm(400), nrow=40)
+image(1:10,1:40, t(data_Matrix)[,nrow(data_Matrix):1])
+heatmap(data_Matrix)
+```
+# add binom pattern to data_Matrix and view heatmap
+```{r}
+set.seed(678910)
+for(i in 1:40){
+  # flipping a coin and getting the data
+  coin_Flip <- rbinom(1, size = 1, prob = 0.5)
+  # if the coin is "Heads", add a common pattern to that row,
+  if(coin_Flip){
+    data_Matrix[i, ] <- data_Matrix[i, ] + rep(c(0,3), each =5)
+  }
+}
+par(mar=rep(0.2,4))
+image(1:10,1:40, t(data_Matrix)[,nrow(data_Matrix):1])
+```
+
+```{r clust}
+hh <- hclust(dist(data_Matrix))
+data_Matrix_Ordered <- data_Matrix[hh$order,]
+par(mfrow = c(1,3))
+image(t(data_Matrix_Ordered)[,nrow(data_Matrix_Ordered):1])
+plot(rowMeans(data_Matrix_Ordered), 40:1, xlab = "The Row Mean", ylab = "Row", pch=19)
+plot(colMeans(data_Matrix_Ordered), xlab = "Column", ylab = "Column Mean", pch=19)
+
+```
+CODE EXAMPLES:
+
+* Lab1_bronx1.R. 
+```{r misc}
+library(gdata) 
+library(readxl)
+library(dplyr)
+
+#faster xls reader but requires perl!
+bronx1<-read.xls("/Users/donneb/Documents/DataAnalytics/rollingsales_bronx.xls",pattern="BOROUGH",stringsAsFactors=FALSE,sheet=1,perl="/Perl64/bin/perl.exe") 
+bronx1<-bronx1[which(bronx1$GROSS.SQUARE.FEET!="0" & bronx1$LAND.SQUARE.FEET!="0" & bronx1$SALE.PRICE!="$0"),]
+View(bronx1)
+
+attach(bronx1) # If you choose to attach, leave out the "data=." in lm regression
+SALE.PRICE<-sub("\\$","",SALE.PRICE) 
+SALE.PRICE<-as.numeric(gsub(",","", SALE.PRICE)) 
+GROSS.SQUARE.FEET<-as.numeric(gsub(",","", GROSS.SQUARE.FEET)) 
+LAND.SQUARE.FEET<-as.numeric(gsub(",","", LAND.SQUARE.FEET)) 
+plot(log(GROSS.SQUARE.FEET), log(SALE.PRICE)) 
+m1<-lm(log(SALE.PRICE)~log(GROSS.SQUARE.FEET))
+summary(m1)
+abline(m1,col="red",lwd=2)
+plot(resid(m1))
+head(bronx1)
+bronx1 %>% count(GROSS.SQUARE.FEET)
+
+
+# Model 2
+head(bronx1)
+
+
+#preprossesing to get proper numeric values
+bronx1$SALE.PRICE <- as.numeric(gsub("[\\$,]","",bronx1$SALE.PRICE ))
+bronx1$GROSS.SQUARE.FEET <- as.numeric(bronx1$GROSS.SQUARE.FEET)
+bronx1$LAND.SQUARE.FEET <- as.numeric(gsub("[\\,]","",bronx1$LAND.SQUARE.FEET))
+
+m2<-lm(log(bronx1$SALE.PRICE)~log(bronx1$GROSS.SQUARE.FEET)+log(bronx1$LAND.SQUARE.FEET)+factor(bronx1$NEIGHBORHOOD))
+summary(m2)
+plot(resid(m2))
+
+# Suppress intercept - using "0+ ..."
+m2a<-lm(log(bronx1$SALE.PRICE)~0+log(bronx1$GROSS.SQUARE.FEET)+log(bronx1$LAND.SQUARE.FEET)+factor(bronx1$NEIGHBORHOOD))
+summary(m2a)
+plot(resid(m2a))
+
+# Model 3
+m3<-lm(log(bronx1$SALE.PRICE)~0+log(bronx1$GROSS.SQUARE.FEET)+log(bronx1$LAND.SQUARE.FEET)+factor(bronx1$NEIGHBORHOOD)+factor(bronx1$BUILDING.CLASS.CATEGORY))
+summary(m3)
+plot(resid(m3))
+
+# Model 4
+m4<-lm(log(bronx1$SALE.PRICE)~0+log(bronx1$GROSS.SQUARE.FEET)+log(bronx1$LAND.SQUARE.FEET)+factor(bronx1$NEIGHBORHOOD)*factor(bronx1$BUILDING.CLASS.CATEGORY))
+summary(m4)
+plot(resid(m4))
+#
+```
+
+* Lab1_bronx2.R
+```{r}
+#install.packages("ggmap")
+#install.packages("class")
+library(ggmap)
+library(ggplot2)
+library(class)
+
+
+#bronx1$SALE.DATE
+bronx1$SALE.PRICE<-sub("\\$","",bronx1$SALE.PRICE) 
+bronx1$SALE.PRICE<-as.numeric(gsub(",","", bronx1$SALE.PRICE)) 
+bronx1$GROSS.SQUARE.FEET<-as.numeric(gsub(",","", bronx1$GROSS.SQUARE.FEET)) 
+bronx1$LAND.SQUARE.FEET<-as.numeric(gsub(",","", bronx1$LAND.SQUARE.FEET)) 
+bronx1$SALE.DATE<- as.Date(gsub("[^]:digit:]]","",bronx1$SALE.DATE)) 
+bronx1$YEAR.BUILT<- as.numeric(gsub("[^]:digit:]]","",bronx1$YEAR.BUILT)) 
+bronx1$ZIP.CODE<- as.character(gsub("[^]:digit:]]","",bronx1$ZIP.CODE)) 
+
+minprice<-10000
+bronx1<-bronx1[which(bronx1$SALE.PRICE>=minprice),]
+nval<-dim(bronx1)[1]
+
+bronx1$ADDRESSONLY<- gsub("[,][[:print:]]*","",gsub("[ ]+","",trim(bronx1$ADDRESS)))
+bronxadd <- unique(data.frame(bronx1$ADDRESSONLY, bronx1$ZIP.CODE, stringsAsFactors=FALSE))
+names(bronxadd)<-c("ADDRESSONLY","ZIP.CODE") 
+bronxadd<-bronxadd[order(bronxadd$ADDRESSONLY),] 
+duplicates<-duplicated(bronx1$ADDRESSONLY)
+
+for(i in 1:2345) {
+if(duplicates[i]==FALSE) dupadd<-bronxadd[bronxadd$duplicates,1]
+}#what are we doing with dupadd?
+
+nsample=450
+
+addsample<-bronxadd[sample.int(dim(bronxadd),size=nsample),]#I use nval here 
+addrlist<-paste(addsample$ADDRESSONLY, "NY", addsample$ZIP.CODE, "US", sep=" ") 
+
+register_google(key = "AIzaSyDFb74sBhynWSdREsi612Ket9xnFHxVHGU")
+
+
+#commented out to reduce API calls
+#querylist<-geocode(addrlist) #This is cool. Take a break.
+
+
+matched<-(querylist$lat!=0 && querylist$lon!=0) 
+addsample<-cbind(addsample,querylist$lat,querylist$lon) 
+names(addsample)<-c("ADDRESSONLY","ZIPCODE","Latitude","Longitude")
+merge(bronx1,addsample)
+adduse<-merge(bronx1,addsample)
+adduse<-adduse[!is.na(adduse$Latitude),]
+mapcoord<-adduse[,c(2,3,24,25)]
+
+table(mapcoord$NEIGHBORHOOD)
+# correct the column na
+
+mapcoord$NEIGHBORHOOD <- as.factor(mapcoord$NEIGHBORHOOD)
+map <- get_map(location = 'Bronx', zoom = 12) #Zoom 11 or 12
+
+ggmap(map) + 
+  geom_point(aes(x = Longitude, y = Latitude, color=NEIGHBORHOOD), data = mapcoord) + theme(legend.position = "none") 
+
+#It would be perfect if I can decrease the size of points 
+
+mapmeans <- cbind(adduse,as.numeric(mapcoord$NEIGHBORHOOD))
+colnames(mapmeans)[26] <- "NEIGHBORHOOD" #This is the right way of renaming.
+
+keeps <- c("ZIP.CODE","NEIGHBORHOOD","TOTAL.UNITS","LAND.SQUARE.FEET","GROSS.SQUARE.FEET","SALE.PRICE","Latitude","Longitude") 
+mapmeans<-mapmeans[keeps]#Dropping others
+mapmeans$NEIGHBORHOOD<-as.numeric(mapcoord$NEIGHBORHOOD) 
+
+for(i in 1:8){
+mapmeans[,i]=as.numeric(mapmeans[,i]) 
+}#Now done for conversion to numeric
+
+#Classification
+mapcoord$class<as.numeric(mapcoord$NEIGHBORHOOD)
+nclass<-dim(mapcoord)[1]
+split<-0.8
+trainid<-sample.int(nclass,floor(split*nclass))
+testid<-(1:nclass)[-trainid]
+
+mappred<-mapcoord[testid,] # What would you use this for?
+mappred$class<as.numeric(mappred$NEIGHBORHOOD) 
+
+kmax<-10
+knnpred<-matrix(NA,ncol=kmax,nrow=length(testid))
+knntesterr<-rep(NA,times=kmax)
+for (i in 1:kmax){		# loop over k
+        knnpred[,i]<-knn(mapcoord[trainid,3:4],mapcoord[testid,3:4],cl=mapcoord[trainid,2],k=i)
+        knntesterr[i]<-sum(knnpred[,i]!=mapcoord[testid,2])/length(testid)
+} 
+knntesterr
+
+#Clustering
+mapobj <- kmeans(mapmeans,5, iter.max=10, nstart=5, algorithm = c("Hartigan-Wong", "Lloyd", "Forgy", "MacQueen"))
+fitted(mapobj,method=c("centers","classes"))
+mapobj$centers
+#
+library(cluster)
+clusplot(mapmeans, mapobj$cluster, color=TRUE, shade=TRUE, labels=2, lines=0) 
+#
+library(fpc)#May need to install.packages("fpc")
+plotcluster(mapmeans, mapobj$cluster)
+#
+mapmeans1<-mapmeans[,-c(1,3,4)]
+mapobjnew<-kmeans(mapmeans1,5, iter.max=10, nstart=5, algorithm = c("Hartigan-Wong", "Lloyd", "Forgy", "MacQueen"))
+fitted(mapobjnew,method=c("centers","classes"))
+clusplot(mapmeans1, mapobjnew$cluster, color=TRUE, shade=TRUE, labels=2, lines=0) 
+plotcluster(mapmeans1, mapobjnew$cluster)
+ggmap(map) + geom_point(aes(x = mapcoord$Longitude, y = mapcoord$Latitude, size =1, color=mapobjnew$cluster), data = mapcoord)#How to change colors?
+```
+
+```{knn1}
+pairs(~ Fertility + Education + Catholic, data = swiss, subset = Education < 20, main = "Swiss data, Education < 20")
+require(party)
+swiss_ctree <- ctree(Fertility ~ Agriculture + Education + Catholic, data = swiss)
+plot(swiss_ctree)
+```
+* Lab1_kknn2.R
+* Lab1_kknn3.R
+* Lab1_kmeans1.R
+* Lab1_nyt.R
+
+* Titanic Trees
+
+* rpart, ctree, hclust, randomForest for:
+* Survived ~ 
+
+

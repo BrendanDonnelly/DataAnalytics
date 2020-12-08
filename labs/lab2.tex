@@ -1,0 +1,406 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Data Analytics: In - Class},
+  pdfauthor={Brendan Donnelly},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{Data Analytics: In - Class}
+\author{Brendan Donnelly}
+\date{September 11, 2020}
+
+\begin{document}
+\maketitle
+
+\hypertarget{example-data-frame-practice}{%
+\section{Example Data Frame
+Practice}\label{example-data-frame-practice}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{days<-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{"Mon"}\NormalTok{, }\StringTok{"Tues"}\NormalTok{, }\StringTok{"Wed"}\NormalTok{, }\StringTok{"Thurs"}\NormalTok{, }\StringTok{"Fri"}\NormalTok{)}
+\NormalTok{snowed<-}\StringTok{ }\KeywordTok{c}\NormalTok{(T,T,F,T,T,T,T)}
+\NormalTok{temperature<-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{10}\NormalTok{,}\DecValTok{10}\NormalTok{,}\DecValTok{10}\NormalTok{,}\DecValTok{10}\NormalTok{,}\DecValTok{10}\NormalTok{,}\DecValTok{10}\NormalTok{)}
+\KeywordTok{help}\NormalTok{(}\StringTok{"data.frame"}\NormalTok{)}
+
+
+\NormalTok{empty.DataFrame <-}\KeywordTok{data.frame}\NormalTok{()}
+\NormalTok{v1<-}\DecValTok{1}\OperatorTok{:}\DecValTok{10}
+\NormalTok{v1}
+\NormalTok{letters}
+\NormalTok{v2<-letters[}\DecValTok{1}\OperatorTok{:}\DecValTok{10}\NormalTok{]}
+\NormalTok{df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}\DataTypeTok{col.name.1 =}\NormalTok{ v1,}\DataTypeTok{col.name.2 =}\NormalTok{ v2)}
+\NormalTok{df}
+
+\CommentTok{#import/export data}
+\CommentTok{#writing to CSV}
+\KeywordTok{write.csv}\NormalTok{(df,}\DataTypeTok{file =} \StringTok{"example"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\#EPI 2010 data
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{EPI<-}\KeywordTok{read.csv}\NormalTok{(}\StringTok{"/Users/donneb/Documents/DataAnalytics/EPI_data.csv"}\NormalTok{)}
+
+\NormalTok{EPI}\OperatorTok{$}\NormalTok{EPI }\CommentTok{# test print of vals}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   [1]   NA   NA 36.3   NA 71.4   NA   NA 40.7 61.0 60.4   NA 69.8 65.7 78.1 59.1
+##  [16] 43.9 58.1 39.6 47.3 44.0 62.5 42.0   NA 55.9 65.4 69.9   NA 44.3 63.4   NA
+##  [31] 60.8 68.0 41.3 33.3 66.4 89.1 73.3 49.0 54.3 44.6 51.6 54.0   NA 76.8   NA
+##  [46]   NA 86.4 78.1   NA 56.3 71.6 73.2 60.5   NA 69.2 68.4 67.4 69.3 62.0 54.6
+##  [61]   NA 70.6 63.8 43.1 74.7 65.9   NA 78.2   NA   NA 56.4 74.2 63.6 51.3   NA
+##  [76] 44.4   NA 50.3 44.7 41.9 60.9   NA   NA 54.0   NA   NA 59.2   NA 49.9 68.7
+##  [91] 39.5 69.1 44.6   NA 48.3 67.1 60.0 41.0 93.5 62.4 73.1 58.0 56.1 72.5 57.3
+## [106] 51.4 59.7 41.7   NA   NA 57.0 51.1 59.6 57.9   NA 50.1   NA   NA 63.7   NA
+## [121] 68.3 67.8 72.5   NA 65.6   NA 58.8 49.2 65.9 67.3   NA 60.6 39.4 76.3 51.3
+## [136] 42.8   NA 51.2 33.7   NA   NA 80.6 51.4 65.0   NA 59.3   NA 37.6   NA 40.2
+## [151] 57.1   NA 66.4 81.1 68.2   NA 73.4 45.9 48.0 71.4   NA 69.3 65.7   NA 44.3
+## [166] 63.1   NA 41.8 73.0 63.5   NA   NA 48.9   NA 67.0 61.2 44.6 55.3 69.4 47.1
+## [181] 42.3 69.6   NA   NA 51.1 32.1 69.1   NA   NA   NA 57.3 68.2 74.5 65.0 86.0
+## [196] 54.4   NA 64.6   NA 40.8 36.4 62.2 51.3   NA 38.4   NA   NA 54.2 60.6 60.4
+## [211]   NA   NA 47.9 49.8 58.2 59.1 63.5 42.3   NA   NA 62.9   NA   NA 59.0   NA
+## [226]   NA   NA 48.3 50.8 47.0 47.8
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{summary}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{EPI)   }\CommentTok{#stats}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##   32.10   48.60   59.20   58.37   67.60   93.50      68
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{fivenum}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{EPI, }\DataTypeTok{na.rm =}\NormalTok{ T)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 32.1 48.6 59.2 67.6 93.5
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{stem}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{EPI)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##   The decimal point is 1 digit(s) to the right of the |
+## 
+##   3 | 234
+##   3 | 66889
+##   4 | 00011112222223344444
+##   4 | 5555677788888999
+##   5 | 0000111111111244444
+##   5 | 55666677778888999999
+##   6 | 000001111111222333344444
+##   6 | 5555666666677778888889999999
+##   7 | 000111233333334
+##   7 | 5567888
+##   8 | 11
+##   8 | 669
+##   9 | 4
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{hist}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{EPI)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/unnamed-chunk-2-1.pdf}
+
+\hypertarget{exercise-1-exploratory-analysis-2-vars}{%
+\section{Exercise 1, exploratory analysis 2
+vars}\label{exercise-1-exploratory-analysis-2-vars}}
+
+\hypertarget{epi-daly}{%
+\subsubsection{EPI DALY}\label{epi-daly}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{plot}\NormalTok{(}\KeywordTok{ecdf}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{DALY),}\DataTypeTok{do.points=}\NormalTok{F, }\DataTypeTok{verticals=}\NormalTok{T, }\DataTypeTok{main =} \StringTok{"CDF Daly"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/daly-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{par}\NormalTok{(}\DataTypeTok{pty=}\StringTok{"s"}\NormalTok{)}
+\CommentTok{#normal dist plot}
+\KeywordTok{qqnorm}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{DALY);}\KeywordTok{qqline}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{DALY)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/daly-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#boxplot}
+\KeywordTok{boxplot}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{DALY)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/daly-3.pdf}
+
+\hypertarget{epi-climate}{%
+\subsubsection{EPI CLIMATE}\label{epi-climate}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{### cumulative density plot}
+\KeywordTok{plot}\NormalTok{(}\KeywordTok{ecdf}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{CLIMATE),}\DataTypeTok{do.points=}\NormalTok{F, }\DataTypeTok{verticals=}\NormalTok{T, }\DataTypeTok{main =} \StringTok{"CDF Climate"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/clim-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{par}\NormalTok{(}\DataTypeTok{pty=}\StringTok{"s"}\NormalTok{)}
+\KeywordTok{help}\NormalTok{(}\StringTok{"par"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## starting httpd help server ... done
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{### normal dist plot}
+\KeywordTok{qqnorm}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{CLIMATE);}\KeywordTok{qqline}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{CLIMATE)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/clim-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{### boxplot}
+\KeywordTok{boxplot}\NormalTok{(EPI}\OperatorTok{$}\NormalTok{CLIMATE)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/clim-3.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{GRUMP<-}\KeywordTok{read.csv}\NormalTok{(}\StringTok{"/Users/donneb/Documents/DataAnalytics/GPW3_GRUMP_SummaryInformation_2010.csv"}\NormalTok{)}
+
+\KeywordTok{summary}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{RefYearFirst)   }\CommentTok{#stats}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##    1970    1989    1990    1990    1992    2001     303
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{fivenum}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{RefYearFirst, }\DataTypeTok{na.rm =}\NormalTok{ T)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 1970.0 1988.5 1990.0 1992.0 2001.0
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{stem}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{RefYearFirst)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##   The decimal point is at the |
+## 
+##   1970 | 00
+##   1972 | 0
+##   1974 | 
+##   1976 | 0
+##   1978 | 00
+##   1980 | 0000000
+##   1982 | 000
+##   1984 | 000000000
+##   1986 | 00000000000000
+##   1988 | 0000000000000000000
+##   1990 | 00000000000000000000000000000000000000000000000000000000000000000000
+##   1992 | 00000000000000000
+##   1994 | 0000000000000000
+##   1996 | 000000000000
+##   1998 | 0000
+##   2000 | 0
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#Exercise 2, exploratory analysis 2 vars}
+\CommentTok{### First Years}
+\CommentTok{#cumulative density plot}
+\KeywordTok{plot}\NormalTok{(}\KeywordTok{ecdf}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{RefYearFirst),}\DataTypeTok{do.points=}\NormalTok{F, }\DataTypeTok{verticals=}\NormalTok{T, }\DataTypeTok{main =} \StringTok{"CDF RefYearFirst"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/unnamed-chunk-3-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{par}\NormalTok{(}\DataTypeTok{pty=}\StringTok{"s"}\NormalTok{)}
+\CommentTok{#normal dist plot}
+\KeywordTok{qqnorm}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{RefYearFirst);}\KeywordTok{qqline}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{RefYearFirst)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/unnamed-chunk-3-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#boxplot}
+\KeywordTok{boxplot}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{RefYearFirst)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/unnamed-chunk-3-3.pdf}
+
+\hypertarget{grump-populations}{%
+\subsection{GRUMP Populations}\label{grump-populations}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#cumulative density plot}
+\KeywordTok{plot}\NormalTok{(}\KeywordTok{ecdf}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{PopulationPerUnit),}\DataTypeTok{do.points=}\NormalTok{F, }\DataTypeTok{verticals=}\NormalTok{T, }\DataTypeTok{main =} \StringTok{"CDF Population"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/pop-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{par}\NormalTok{(}\DataTypeTok{pty=}\StringTok{"s"}\NormalTok{)}
+\CommentTok{#normal dist plot}
+\KeywordTok{qqnorm}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{PopulationPerUnit);}\KeywordTok{qqline}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{PopulationPerUnit)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/pop-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#boxplot}
+\KeywordTok{boxplot}\NormalTok{(GRUMP}\OperatorTok{$}\NormalTok{PopulationPerUnit)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab2_files/figure-latex/pop-3.pdf}
+
+\end{document}
