@@ -1,0 +1,237 @@
+---
+title: "NY Times Data Study"
+author: "Brendan Donnelly"
+date: "10/9/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# to fix pdf output rendering of qqplots
+#update.packages(ask = FALSE, repos = 'http://cran.rstudio.org')
+#install.packages('knitr', repos = c('http://yihui.name/xran', 'http://cran.rstudio.org'))
+
+```
+
+
+# reading the files
+```{r nyt}
+library(ggplot2)
+ny10<-read.csv("/Users/donneb/Documents/DataAnalytics/nyt10.csv")
+ny11<-read.csv("/Users/donneb/Documents/DataAnalytics/nyt11.csv")
+ny12<-read.csv("/Users/donneb/Documents/DataAnalytics/nyt12.csv")
+ny13<-read.csv("/Users/donneb/Documents/DataAnalytics/nyt13.csv")
+ny14<-read.csv("/Users/donneb/Documents/DataAnalytics/nyt14.csv")
+
+#ny10_new <- na.omit(ny10)
+#ny11_new <- na.omit(ny11)
+#ny12_new <- na.omit(ny12)
+#ny13_new <- na.omit(ny13)
+#ny14_new <- na.omit(ny14)
+#probably wont use as there are no NA vals
+
+```
+
+## A.Boxplots
+# KEY VARS - AGE, IMPRESSIONS
+```{r boxy}
+# Age Boxplots
+boxplot(ny10$Age, ny11$Age, ny12$Age,ny13$Age,ny14$Age, names = c('ny10','ny11','ny12','ny13','ny14'), main= "Age Boxplots among Datasets")
+fivenum(ny10$Age)
+```
+
+The median age of the ny times data consistently hovers around the 30's.These plots have an inter quartile range IQR from roughly 0 to 50. In addition, they all have a long whisker to reach the 4th quartile hovering over 100. Based off of the shape of these boxplots the distribution appears to be chi-squared or gamma.
+
+```{r boxy2}
+boxplot(ny10$Impressions, ny11$Impressions, ny12$Impressions,ny13$Impressions,ny14$Impressions, names = c('ny10','ny11','ny12','ny13','ny14'), main= "Impression Boxplots among Datasets")
+fivenum(ny10$Impressions)
+```
+ These impression boxplots all look fairly normal with the exception of 8-10 outliers per dataset. This is not too bad as these data sets have around 40k to 80k users. This indicates that ~10/60k are getting a ridiculous 10 to 20 impressions (or ads) when they visit. However the general distribution is controlled around an IQR of 3 - 6 ads. 
+
+
+## B. Histograms
+```{r hists}
+
+hist(ny10$Age, breaks=20, main="ny10 test w/ 0 default age vals")
+#0 is obviously the default and clouding the data so will not graph 0 values from Age
+hist( ny10$Age[ !ny10$Age==0 ],breaks=20, xlab = "Age", main="NYT10 Age Histogram (w/ 0 default Age omitted)")
+hist( ny11$Age[ !ny11$Age==0 ],breaks=20, xlab = "Age", main="NYT11 Age Histogram (w/ 0 default Age omitted)")
+hist( ny12$Age[ !ny12$Age==0 ],breaks=20, xlab = "Age", main="NYT12 Age Histogram (w/ 0 default Age omitted)")
+hist( ny13$Age[ !ny13$Age==0 ],breaks=20, xlab = "Age", main="NYT13 Age Histogram (w/ 0 default Age omitted)")
+hist( ny14$Age[ !ny14$Age==0 ],breaks=20, xlab = "Age", main="NYT14 Age Histogram (w/ 0 default Age omitted)")
+```
+After outputing the first histogram the problem was clear. The default 0 value of age was clouding the actual age distribution which is signifigantly more a normal distribution than a chi-squared or gamma distribution.This brings the median age form around 31 to around 40.
+
+
+
+```{r imphist}
+hist(ny10$Impressions,breaks=15, xlab = "Impressions",main="NYT10 Impressions")
+hist(ny11$Impressions,breaks=15, xlab = "Impressions",main="NYT11 Impressions")
+hist(ny12$Impressions,breaks=15, xlab = "Impressions",main="NYT12 Impressions")
+hist(ny13$Impressions,breaks=15, xlab = "Impressions",main="NYT13 Impressions")
+hist(ny14$Impressions,breaks=15, xlab = "Impressions",main="NYT14 Impressions")
+```
+Each of these histograms is positively skewed. They look more like Poisson Distributions than normal distributions but they are somewhat normal. The clearest difference between them is in the # of frequency as some data sets are larger.For example, comparing NYT 11 Impressions w/ NYT 13 Impressions, 13 has a larger tail as it has more data.
+
+
+## C
+
+```{r allECDF}
+plot(ecdf(ny10$Age[ !ny10$Age==0 ]), main = "ECDF NY10 AGE")
+plot(ecdf(ny11$Age[ !ny11$Age==0 ]), main = "ECDF NY11 AGE")
+plot(ecdf(ny12$Age[ !ny12$Age==0 ]), main = "ECDF NY12 AGE")
+plot(ecdf(ny13$Age[ !ny13$Age==0 ]), main = "ECDF NY13 AGE")
+plot(ecdf(ny14$Age[ !ny14$Age==0 ]), main = "ECDF NY14 AGE")
+plot(ecdf(ny10$Impressions))
+plot(ecdf(ny11$Impressions))
+plot(ecdf(ny12$Impressions))
+plot(ecdf(ny13$Impressions))
+plot(ecdf(ny14$Impressions))
+```
+
+The ECDFs of the Age Variables look normal and have many steps that blend into a line. The ECDFs of Impressions have much more prominent steps as the variables are all integers. The Impression ECDFs reached a higher cumulative density much quicker left to right than the Age ECDFs.
+
+```{r qqage}
+qqnorm(ny10$Age[ !ny10$Age==0 ])
+qqnorm(ny11$Age[ !ny11$Age==0 ])
+qqnorm(ny12$Age[ !ny12$Age==0 ])
+qqnorm(ny13$Age[ !ny13$Age==0 ])
+qqnorm(ny14$Age[ !ny14$Age==0 ])
+```
+These qqnorm plots sink in the middle and are not properly straight diagonal lines. This shows that the data is too positively skewed. 
+
+```{r qqimp}
+imp10 = ny10$Impressions
+imp11 = ny11$Impressions
+imp12 = ny12$Impressions
+imp13 = ny13$Impressions
+imp14 = ny14$Impressions
+
+#imp10 q-q
+qqplot(x = qpois(ppoints(imp10), lambda = mean(imp10)),
+       y = imp10,
+       main = "QQ-Plot: NY10 Impressions, Poisson Distribution",
+       xlab = "Theoretical Quantiles, Poisson Distribution",
+       ylab = "Sample Quantiles, Number of Impressions")
+abline(a = 0, b = 1, col = "dodgerblue", lwd = 2)
+grid()
+
+#imp11 q-q
+qqplot(x = qpois(ppoints(imp11), lambda = mean(imp11)),
+       y = imp11,
+       main = "QQ-Plot: NY11 Impressions, Poisson Distribution",
+       xlab = "Theoretical Quantiles, Poisson Distribution",
+       ylab = "Sample Quantiles, Number of Impressions")
+abline(a = 0, b = 1, col = "dodgerblue", lwd = 2)
+grid()
+
+#imp10 q-q
+qqplot(x = qpois(ppoints(imp12), lambda = mean(imp12)),
+       y = imp12,
+       main = "QQ-Plot: NY12 Impressions, Poisson Distribution",
+       xlab = "Theoretical Quantiles, Poisson Distribution",
+       ylab = "Sample Quantiles, Number of Impressions")
+abline(a = 0, b = 1, col = "dodgerblue", lwd = 2)
+grid()
+
+#imp13 q-q
+qqplot(x = qpois(ppoints(imp13), lambda = mean(imp13)),
+       y = imp13,
+       main = "QQ-Plot: NY13 Impressions, Poisson Distribution",
+       xlab = "Theoretical Quantiles, Poisson Distribution",
+       ylab = "Sample Quantiles, Number of Impressions")
+abline(a = 0, b = 1, col = "dodgerblue", lwd = 2)
+grid()
+
+#imp14 q-q
+qqplot(x = qpois(ppoints(imp14), lambda = mean(imp14)),
+       y = imp14,
+       main = "QQ-Plot: NY14 Impressions, Poisson Distribution",
+       xlab = "Theoretical Quantiles, Poisson Distribution",
+       ylab = "Sample Quantiles, Number of Impressions")
+abline(a = 0, b = 1, col = "dodgerblue", lwd = 2)
+grid()
+
+
+```
+
+The Poisson QQ-Plots of the NYT Impressions data matches quite well indicating it is the correct distribution for this variable.
+
+
+## D / E Signifigance Test
+```{r siggy}
+#H_0 = There is no relationship between the Impressions values and the Age and Signed_In variables
+#H_A = There is a relationship between the Impressions values and the Age and Signed_In variables
+
+#Exploring regression model
+lm10<- lm(Impressions ~ Age+Signed_In, data = ny10)
+lm10
+
+#will only plot lm residuals and all for this example
+plot(lm10)
+summary(lm10)
+lm10$coefficients
+```
+
+Was curious  to understand if users that were signed in had less ads, and whether or not older people were more prone to ads / not using ad blockers. The signifigance test of the linear regression failed to reject the null hypothesis. Both Age and Signed_In were insignifigant in predicting (ad) Impressions. The residuals were not random and the y -intercept was the most signifgant indicator (center point of Impressions). This means that the impressions are consistent to users regardless of age or if they're signed in. They will most likely change dependent on user but overall the frequency is more or less the same.
+
+## 2
+```{r two}
+#Q1a
+boxplot(Age~ Gender, data = ny10, main= "Gender, Age NYT 10 Boxplot ")
+boxplot(Age~ Gender, data = ny11, main= "Gender, Age NYT 11 Boxplot ")
+
+#Q1b
+
+ggplot(ny10, aes(x = Age))+ 
+  geom_histogram(aes(fill=ifelse(Gender>0,"green","red")), bins = 20)+
+  scale_color_identity() +ggtitle("NYT10 Age Histogram by Gender")+ scale_fill_discrete(name = "Gender", labels = c("1","0"))
+
+ggplot(ny11, aes(x = Age))+ 
+  geom_histogram(aes(fill=ifelse(Gender>0,"green","red")), bins = 20)+
+  scale_color_identity() +ggtitle("NYT10 Age Histogram by Gender")+ scale_fill_discrete(name = "Gender", labels = c("1","0"))
+
+#Q1c
+
+#ny10 subsetting
+ny10gen0 <-subset(ny10,Gender = 0)
+ny10gen1 <-subset(ny10,Gender = 1)
+
+plot(ecdf(ny10gen0$Age), main = "ECDF NYT 10-Gender0 Subset: AGE")
+plot(ecdf(ny10gen1$Age), main = "ECDF NYT 10-Gender1 Subset: AGE")
+
+#ny11 subsetting
+
+ny11gen0 <-subset(ny11,Gender = 0)
+ny11gen1 <-subset(ny11,Gender = 1)
+
+plot(ecdf(ny11gen0$Age), main = "ECDF NYT 11-Gender0 Subset: AGE")
+plot(ecdf(ny11gen1$Age), main = "ECDF NYT 11-Gender1 Subset: AGE")
+```
+```{r}
+#H_0 = There is no relationship between the Impressions values and the Age and Signed_In variables
+#H_A = There is a relationship between the Impressions values and the Age and Signed_In variables
+
+#Exploring regression model
+lm10gen0<- lm(Impressions ~ Age+Signed_In, data = ny10gen0)
+lm10gen0
+lm10gen1<- lm(Impressions ~ Age+Signed_In, data = ny10gen1)
+lm10gen1
+
+lm11gen0<- lm(Impressions ~ Age+Signed_In, data = ny11gen0)
+lm11gen0
+lm11gen1<- lm(Impressions ~ Age+Signed_In, data = ny11gen1)
+lm11gen1
+
+```
+The regressions had the same results as before and the different subsetting by gender did not influence the outcome.
+The most notable takeaway after exploring the gender filtered age distribution was that the defaulting Age 0 data was also all of gender 0. While this study failed to reject the null hypothesis (There is no relationship between the Impressions values and the Age and Signed_In variables), it yielded insight and the exploratory data analysis proved useful in understanding the types and distributions of the data and lead to the conclusion that the Impressions follow a Poisson Distribution.
+
+
+
+
+
+

@@ -1,0 +1,251 @@
+---
+title: 'Data Analytics: MANHATTAN DATA EXPLORATION, K-MEANS CLUSTERING'
+author: "Brendan Donnelly"
+date: "October 20, 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r misc}
+#to remove lists in env
+#remove(list = ls())
+library(gdata) 
+library(readxl)
+library(dplyr)
+
+#faster xls reader but requires perl!
+man<-read.xls("/Users/donneb/Documents/DataAnalytics/rollingsales_manhattan.xls",pattern="BOROUGH",stringsAsFactors=FALSE,sheet=1,perl="/Perl64/bin/perl.exe") 
+man <- man[which(man$GROSS.SQUARE.FEET!="0" & man$LAND.SQUARE.FEET!="0" & man$SALE.PRICE!="$0"),]
+```
+
+* Loading Manhattan RollingSales NY Housing Data, Viewing Log Relationships
+```{r load_and_clean}
+attach(man) # If you choose to attach, leave out the "data=." in lm regression
+SALE.PRICE<-sub("\\$","",SALE.PRICE) 
+SALE.PRICE<-as.numeric(gsub(",","", SALE.PRICE)) 
+GROSS.SQUARE.FEET<-as.numeric(gsub(",","", GROSS.SQUARE.FEET)) 
+LAND.SQUARE.FEET<-as.numeric(gsub(",","", LAND.SQUARE.FEET)) 
+
+plot(log(GROSS.SQUARE.FEET), log(SALE.PRICE)) 
+sapply(man, function(x) sum(is.na(x)))
+
+#used to remove na in prev version
+man1 <- man
+```
+
+Many patterns or trends could be found as the dataset has plenty of variables that impact each other. In this model there will be a focus on sales price as the dependent variable in regressions. These first regressions will analyze the significance of relationships between sales price and variables such as GROSS.SQUARE.FOOTAGE, LAND.SQUARE.FOOTAGE, and NEIGHBORHOOD.
+
+
+
+* EDA
+```{r}
+library(tidyverse)
+#preprosseing sales price
+man1$SALE.PRICE <- as.numeric(gsub("[\\$,]","",man1$SALE.PRICE ))
+
+sapply(man1, function(x) sum(is.na(x)))
+#plotting counts of SALE.PRICES
+man1 %>% count(SALE.PRICE)
+man1 %>% count(GROSS.SQUARE.FEET)
+
+#Exploring SALE.DATE variable
+man1_clean <- man1 %>%
+  separate(SALE.DATE, c("SALE.YEAR", "SALE.MONTH", "SALE.DAY"), "-", convert = TRUE)
+
+man1 %>% count(SALE.DATE)
+range(SALE.DATE)
+
+man1_clean %>% count(SALE.YEAR)
+man1_clean %>% count(BUILDING.CLASS.CATEGORY)
+
+val_units <- man1_clean %>%
+  group_by(NEIGHBORHOOD)%>%
+    summarise(mean = mean(SALE.PRICE)) %>%
+      arrange(desc(mean))
+
+val_units
+
+#average sales cost by neighborhood
+ggplot(data = val_units, aes(x = NEIGHBORHOOD, y = mean, color = NEIGHBORHOOD))+
+  geom_bar(stat = "identity", width = 0.6)+
+  theme(legend.position = "none")
+
+#viewing price by timeseries
+man1_clean <- man1_clean%>%
+  mutate(SALE.DATE = SALE.YEAR + (SALE.MONTH - 1)/12 + (SALE.DAY)/365)
+
+ggplot(man1_clean, aes(SALE.DATE, SALE.PRICE))+
+  geom_point()
+
+#price by sale.date also breaking down groups by building category
+ggplot(man1_clean, aes(SALE.DATE, SALE.PRICE))+
+  geom_point(aes(group = BUILDING.CLASS.CATEGORY), alpha = 1/5) +
+  scale_y_log10()
+```
+Many charts were plotted and counts of various variables were counted to get a feel for the data. had a lot of fun here mutating the data and using pipes to seperate value such as month and day from the data and arrange the average neighborhood sales price by neighboorhood in desc order. I finally analyzed the time variable of the sales date to see if there was any seasonality but the dataset was too small to see real differences. To add to this I broke applied a log function to the time series pricing data and grouped the points with differing alpha values dependent on their building class to further break down the data. This indicated large differences in the scale of value for building by class.
+
+
+
+* Developing Multivariate Regression Models
+```{r manylm}
+#Model 1 RELATES GROSS.SQUARE.FEET to SALE.PRICE
+
+m1<-lm(log(SALE.PRICE)~log(GROSS.SQUARE.FEET))
+summary(m1)
+plot(log(GROSS.SQUARE.FEET), log(SALE.PRICE))
+abline(m1,col="red",lwd=2)
+plot(resid(m1))
+
+
+#preprossesing to get proper numeric values
+man1$SALE.PRICE <- as.numeric(gsub("[\\$,]","",man1$SALE.PRICE ))
+man1$GROSS.SQUARE.FEET <- as.numeric(man1$GROSS.SQUARE.FEET)
+man1$LAND.SQUARE.FEET <- as.numeric(gsub("[\\,]","",man1$LAND.SQUARE.FEET))
+
+m2<-lm(log(man1$SALE.PRICE)~log(GROSS.SQUARE.FEET)+log(LAND.SQUARE.FEET)+factor(man1$NEIGHBORHOOD))
+summary(m2)
+plot(resid(m2))
+```
+Overall the second model performed better and had more normal looking residuals. The adjusted R^2 value was not that good only being 0.533, however the model did identify which key factors drove SALES by determining high signifigance in (LAND.SQUARE.FEET, GREENWICH VILLAGE-WEST, MIDTOWN CBD, MIDTOWN EAST, MIDTOWN WEST, and SOHO). This signifigance ultimately corresponded to the previous EDA as these neighborhoods all are those with the highest average SALES.PRICE. 
+
+* Developing KNN Model
+
+```{r man knn_and_goog}
+#install.packages("ggmap")
+#install.packages("class")
+library(ggmap)
+library(ggplot2)
+library(class)
+
+
+#more preproccessing to put into geocode, make sure proper removal of unwanted chars
+
+man1$SALE.PRICE<-sub("\\$","",man1$SALE.PRICE) 
+man1$SALE.PRICE<-as.numeric(gsub(",","", man1$SALE.PRICE)) 
+man1$GROSS.SQUARE.FEET<-as.numeric(gsub(",","", man1$GROSS.SQUARE.FEET)) 
+man1$LAND.SQUARE.FEET<-as.numeric(gsub(",","", man1$LAND.SQUARE.FEET)) 
+man1$SALE.DATE<- as.Date(gsub("[^]:digit:]]","", man1$SALE.DATE)) 
+man1$YEAR.BUILT<- as.numeric(gsub("[^]:digit:]]","",man1$YEAR.BUILT)) 
+man1$ZIP.CODE<- as.character(gsub("[^]:digit:]]","",man1$ZIP.CODE)) 
+
+
+#2704/2759 houses above 10,000 in salesprice
+#Filtered Dataset, in future could also use %>% and filter
+
+minprice <- 10000
+man1<-man1[which(man1$SALE.PRICE>=minprice),]
+nval<-dim(man1)[1]
+
+#trimming address for google params and sampling dataset
+
+man1$ADDRESSONLY<- gsub("[,][[:print:]]*","",gsub("[ ]+","",trim(man1$ADDRESS)))
+manadd <- unique(data.frame(man1$ADDRESSONLY, man1$ZIP.CODE, stringsAsFactors=FALSE))
+
+names(manadd)<-c("ADDRESSONLY","ZIP.CODE") 
+manadd<-manadd[order(manadd$ADDRESSONLY),] 
+duplicates<-duplicated(man1$ADDRESSONLY)
+
+
+for(i in 1:2704) {
+if(duplicates[i]==FALSE) dupadd <-manadd[manadd$duplicates,1]
+}
+
+#what are we doing with dupadd? - I believe this is checking for duplicates and setting dupadd[i] = 1 if (manadd[i] is found in the manadd list at another index) else = NA
+
+nsample=450
+addsample<-manadd[sample.int(dim(manadd),size=nsample),]#I use nval here 
+addrlist<-paste(addsample$ADDRESSONLY, "NY", addsample$ZIP.CODE, "US", sep=" ")
+```
+
+Alot of cleaning was done here to use the data in a reggression model. The $ and , characters were removed from the SALES.PRICE variable while the digits outside of SALES
+
+
+```{r goog}
+#had to create account + key for API calls. Think its free up to certain limit
+register_google(key = "AIzaSyDFb74sBhynWSdREsi612Ket9xnFHxVHGU")
+
+
+#commented out to reduce API calls
+querylist<-geocode(addrlist) #This is cool. Take a break.
+
+
+matched<-(querylist$lat!=0 && querylist$lon!=0) 
+addsample<-cbind(addsample,querylist$lat,querylist$lon) 
+names(addsample)<-c("ADDRESSONLY","ZIPCODE","Latitude","Longitude")
+merge(man1,addsample)
+adduse<-merge(man1,addsample)
+adduse<-adduse[!is.na(adduse$Latitude),]
+mapcoord<-adduse[,c(2,3,24,25)]
+
+table(mapcoord$NEIGHBORHOOD)
+# correct the column na
+
+mapcoord$NEIGHBORHOOD <- as.factor(mapcoord$NEIGHBORHOOD)
+map <- get_map(location = 'Manhattan', zoom = 11) #Zoom 11 or 12
+
+ggmap(map) + 
+  geom_point(aes(x = Longitude, y = Latitude, color=NEIGHBORHOOD), data = mapcoord) + theme(legend.position = "none") 
+
+#It would be perfect if I can decrease the size of points 
+
+mapmeans <- cbind(adduse,as.numeric(mapcoord$NEIGHBORHOOD))
+colnames(mapmeans)[26] <- "NEIGHBORHOOD" #This is the right way of renaming.
+
+keeps <- c("ZIP.CODE","NEIGHBORHOOD","TOTAL.UNITS","LAND.SQUARE.FEET","GROSS.SQUARE.FEET","SALE.PRICE","Latitude","Longitude") 
+mapmeans<-mapmeans[keeps]#Dropping others
+mapmeans$NEIGHBORHOOD<-as.numeric(mapcoord$NEIGHBORHOOD) 
+
+for(i in 1:8){
+mapmeans[,i]=as.numeric(mapmeans[,i]) 
+}#Now done for conversion to numeric
+
+#Classification  -- train = 0.8, test = 0.2 of datset
+mapcoord$class<as.numeric(mapcoord$NEIGHBORHOOD)
+nclass<-dim(mapcoord)[1]
+split<-0.8
+trainid<-sample.int(nclass,floor(split*nclass))
+testid<-(1:nclass)[-trainid]
+
+mappred<-mapcoord[testid,] # What would you use this for? 
+mappred$class<as.numeric(mappred$NEIGHBORHOOD) 
+
+kmax<-10
+knnpred<-matrix(NA,ncol=kmax,nrow=length(testid))
+knntesterr<-rep(NA,times=kmax)
+for (i in 1:kmax){		# loop over k
+        knnpred[,i]<-knn(mapcoord[trainid,3:4],mapcoord[testid,3:4],cl=mapcoord[trainid,2],k=i)
+        knntesterr[i]<-sum(knnpred[,i]!=mapcoord[testid,2])/length(testid)
+} 
+knntesterr
+
+
+#sapply(mapmeans, function(x) sum(is.na(x)))
+
+#Clustering
+#mapobj <- kmeans(mapmeans,5, iter.max=10, nstart=5, algorithm = c( "Lloyd", "Forgy"))
+#fitted(mapobj,method=c("centers","classes"))
+#mapobj$centers
+#
+##library(cluster)
+#clusplot(mapmeans, mapobj$cluster, color=TRUE, shade=TRUE, labels=2, #lines=0) 
+#
+#library(fpc)#May need to install.packages("fpc")
+#plotcluster(mapmeans, mapobj$cluster)
+#
+#mapmeans1<-mapmeans[,-c(1,3,4)]
+#mapobjnew<-kmeans(mapmeans1,5, iter.max=10, nstart=5, algorithm = c("Hartigan-Wong", "Lloyd", "Forgy", "MacQueen"))
+#fitted(mapobjnew,method=c("centers","classes"))
+#clusplot(mapmeans1, mapobjnew$cluster, color=TRUE, shade=TRUE, labels=2, lines=0) 
+#plotcluster(mapmeans1, mapobjnew$cluster)
+
+#ggmap(map) + geom_point(aes(x = mapcoord$Longitude, y = mapcoord$Latitude, #size =1, color=mapobjnew$cluster), data = mapcoord)#How to change colors?
+
+```
+
+* The KNN model ultimately did not work due to what i believe to be na values in the map means. I do believe that the regression part covered the signifigance test of the model and the plot of the plot line multivariate plot did correspond to predictions derived from the model. Overall the regression fit failed with a poor Adjusted R2 value and only was good at guessing the highest most affuluent neighborhoods in addition to across the board factoring LAND.SQUARE.FEET.I do believe the KNN means would have performed with a higher accuracy and plotting directly onto ggmap to compare the regions would have been a great visualization. I do still think the regression enabled some insight into main factors. In addition, the EDA enabled some relationships to come to light such as building class and the effect of time. If this study was further explored I'd recommend more datapoints to explore seasonality.
+
+
+
+
+

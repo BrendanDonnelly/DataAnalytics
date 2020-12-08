@@ -1,0 +1,430 @@
+---
+title: 'Data Analytics: Assignment 7 - News and Wine Data Sets'
+author: "Brendan Donnelly"
+date: "December 4, 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# News Modeling
+
+## Loading both datasets
+```{r warning = FALSE, message = FALSE}
+#to remove lists in env
+#remove(list = ls())
+
+library(ggplot2)
+library(knitr)
+library(dplyr)
+library(tidyverse)
+
+
+news_raw<-read.csv("/Users/donneb/Documents/DataAnalytics/News_Final.csv")
+wines_red<-read.csv("/Users/donneb/Documents/DataAnalytics/winequality-red.csv")
+wines_white<-read.csv("/Users/donneb/Documents/DataAnalytics/winequality-white.csv")
+
+#head(news_raw)
+```
+
+## News Dataset EDA
+
+```{r warning = FALSE, message = FALSE}
+sapply(news_raw, function(x) sum(is.na(x)))
+```
+ 
+there are no NULL values in any columns. there doesnt 
+
+```{r warning = FALSE, message = FALSE}
+#Exploring PublishDate  variable, preprossing for better analysis
+news_clean <- news_raw %>%
+  separate(PublishDate, c("Publish.Year", "Publish.Month", "Publish.Day"), "-", convert = TRUE) %>%
+  separate(Publish.Day, c("Publish.Day", "Publish.Time"), " ", convert = TRUE)
+
+#basic look at data set w/ new date vars
+head(news_clean,3)
+tail(news_clean,3)
+
+#range of published dates
+range(news_raw$PublishDate)
+```
+
+## Word Count Analysis
+```{r echo = T, results = 'hide'}
+#following analysis from https://datascienceplus.com/news-headlines-text-analysis/
+library(tidytext)
+library(dplyr)
+
+news_df <- news_clean %>% 
+  select(Headline)
+news_tokens <- news_df %>% 
+  unnest_tokens(word, Headline)
+```
+
+
+```{r echo = T, results = 'hide', warning = FALSE}
+#most freq words in headlines w/ proportion
+news_tokens %>% count(word, sort = TRUE) %>% mutate(proportion = n / sum(n))
+
+#removing stop words (no sentiment value)
+news_tokens_no_sp <- news_tokens %>% anti_join(stop_words)
+```
+
+```{r}
+#count news tokens post removal of "stop words"
+news_tokens_count <- news_tokens_no_sp %>% count(word, sort = TRUE) %>% mutate(proportion = n / sum(n))
+  head(news_tokens_count, 20)
+
+news_token_over3000 <- news_tokens_count %>% filter(n > 3000) %>% mutate(word = reorder(word, n))
+
+news_token_over3000 %>%  
+  ggplot(aes(word, proportion*1000, fill=ceiling(proportion*1000))) +
+  geom_col() + xlab(NULL) + coord_flip() + theme(legend.position = "none")
+
+```
+ The words from each headline were individually pulled out and their frequency was examined after removing filler words. The most common non-filler words in headlines are visible in the graph above. Really cool to learn but not quite able to tie with other datafrane and draw big conclusions about words and sentiment. Even so we already have a given sentiment and want to focus on other areas including: topic, popularity (Facebook, Google+, LinkedIn,), and maybe date/time, source
+
+## A look at the distinct topics, and sources
+```{r warnings = FALSE}
+#Unique topics
+distinct(news_clean, Topic)
+#Unique sources
+head(distinct(news_clean, Source))
+count(distinct(news_clean, Source))
+
+ggplot(data.frame(news_clean), aes(x=Topic)) +
+  geom_bar()
+```
+
+the main take-away here is that there is a significant amount of sources drawn from (5757) and that this data set is focused on only four topics (obama, economy, microsoft, and palestine) there are the most article topics about economy and few relatively of palestine.
+
+## Sentiment Title by Topic means, timeseries view
+```{r warning = FALSE}
+# avg sentiment creation
+sentiment_per_topic <- news_clean %>%
+  group_by(Topic)%>%
+    summarise(mean = mean(SentimentTitle)) %>%
+      arrange(desc(mean))
+
+#avg sentiment per source
+sentiment_per_source <- news_clean %>%
+  group_by(Source)%>%
+    summarise(mean = mean(SentimentTitle)) %>%
+      arrange(desc(mean))
+
+head(sentiment_per_source, 60)
+tail(sentiment_per_source)
+
+#average Title Sentiment by Topic graph
+ggplot(data = sentiment_per_topic, aes(x = Topic, y = mean, color = Topic))+
+  geom_bar(stat = "identity", width = 0.6)+
+  theme(legend.position = "none")
+
+
+#Filtering most common 50 sources
+main_source <- news_clean %>%
+    group_by(Topic,Source)%>%
+    summarize(Count = n())%>%
+    arrange(desc(Count))
+
+main_source
+
+top50_source = head(main_source, 50)
+
+#plot(top50_source)
+
+ggplot(subset(sentiment_per_source, Source %in% top50_source$Source), aes(x = reorder(Source,-mean), y = mean))+
+  geom_histogram(stat = "identity", width = 0.4)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1), legend.position = "none")+
+  ggtitle("Mean Sentiment of Articles \n w/ Topics of (obama,economy,microsoft, palestine) from Top Sources")
+
+#viewing sentiment by timeseries
+news_clean <- news_clean%>%
+  mutate(Publish.Date = Publish.Year + (Publish.Month)/12 + (Publish.Day)/365)
+```
+
+Developed some graphics tracking average sentiment both by source and over time. The majority of articles are from ~2016 limiting using publishing year as a factor for regression giving a very limited scope of sentiment changing through time. Also examined word usage and sentiment on impact of sources if i want to use sentiment as DV also will have to run x4 per each categorical topic.
+
+```{r}
+#Publish Time
+ggplot(news_clean, aes(Publish.Time, SentimentHeadline))+
+  geom_point(aes(group = Topic), alpha = 1/5)
+
+```
+This graph shows that depending on the Topic the sentiment has different variance
+
+```{r}
+#sentiment plot is normal on fb
+plot(news_clean$SentimentHeadline,news_clean$Facebook)
+plot(news_clean$SentimentHeadline,news_clean$GooglePlus)
+plot(news_clean$SentimentHeadline,news_clean$LinkedIn)
+```
+Sentiment is normally spread over all platforms. Facebook is the most popular followed by, LinkedIn, then Google Plus
+
+
+## 2. Model Development, Validation, Optimization and Tuning
+## Linear Model Predicting Facebook popularity
+
+```{r}
+library(e1071)
+library(ggplot2)
+
+head(news_clean$Topic)
+
+#news_clean <- news_clean %>%
+#  mutate(Topic = factor(Topic, levels = c("obama","economy","microsoft","palestine"),
+#                      labels = c(1,2,3,4)))
+head(news_clean$Topic)
+
+#limited svm to non-categorical
+lm_model <- lm(Facebook~ SentimentTitle, data = news_clean)
+summary(lm_model)
+
+lm_model2 <- lm(Facebook ~ SentimentTitle + SentimentHeadline, data = news_clean)
+summary(lm_model2)
+
+lm_model3 <- lm(Facebook ~ SentimentTitle + SentimentHeadline+ Topic, data = news_clean)
+summary(lm_model3)
+
+qplot(SentimentTitle, Facebook, data=news_clean, color = Topic)
+  
+
+anova(lm_model, lm_model2,lm_model3,
+      test="Chisq")
+```
+
+An anova run of all the linear models determined that the last model incorporating topic, and sentiment title, and sentiment headline were the best predictor for facebook popularity.
+
+## Validation
+```{r warnings = FALSE}
+plot(news_clean$SentimentTitle, news_clean$Facebook)+
+  abline(lm_model3)
+
+```
+
+Overall the line was an okay indicator and demonstrated that there was a significant relationship between topic and popularity on facebook. Overall the linear model was not the best choice and the model was heavily skewed/ floored down by the many non-popular articles.
+
+```{r}
+library(caret)
+
+# Split the data into training and test set 
+set.seed(123) 
+training.samples <- news_clean$Facebook %>% 
+  createDataPartition(p = 0.8, list = FALSE) 
+train.data  <- news_clean[training.samples, ] 
+test.data <- news_clean[-training.samples, ] 
+
+#build poly model
+polylm_model<- lm(Facebook ~ poly(SentimentTitle + SentimentHeadline)+ Topic, data = train.data)
+summary(lm_model3)
+
+#predictions
+predictions <- polylm_model %>% predict(test.data)
+
+
+# Model performance 
+modelPerfomance = data.frame( 
+                    RMSE = RMSE(predictions, test.data$Facebook), 
+                     R2 = R2(predictions, test.data$Facebook) 
+                 ) 
+print(modelPerfomance) 
+```
+
+## 3. Describe your conclusions in regard to the model fit, predictions and how well (or not) it could be used for decisions and why.
+
+Graphics and conclusions mixed in above with modeling: 
+
+Overall Takeaways:
+
+A step was made to try to improve this model by making the sentiment variables polynomial in the linear regression. Overall the model still performed poorly by having a low r^2 value. Further research should be done on predictive abilities of large normal data sets. Stratifications and filtering into groups of popularity may need to be more defined in future efforts.
+
+Overall as a publisher one should not rely purely on sparking strong positive or negative sentiment to gain popularity as there is a fairly balanced sentiment for the most popular sources. From a predictive standpoint it demonstrated that if one wanted to make a top tier popular article on facebook they have a higher chance when making the article about obama and that the 4 topics this dataset correlated to popularity rank on facebook. 
+
+
+-------------------------------------------------------------
+
+
+# WINE
+
+## EDA
+
+
+```{r}
+head(wines_red)
+tail(wines_red)
+head(wines_white)
+tail(wines_white)
+
+sapply(wines_red, function(x) sum(is.na(x)))
+sapply(wines_white, function(x) sum(is.na(x)))
+
+summary(wines_red)
+summary(wines_white)
+
+boxplot(wines_red$quality, wines_white$quality)
+
+heatmap(cor(wines_red))
+heatmap(cor(wines_white))
+```
+For preprossesing used excel data's text-to-columns feature to make data readable as csv from ; seperated There are no NA values and early EDA w/ a heatmap shows the general spread of variance in the two data set. The heatmap for red shows that quality is most correlated with alcohol, sulphates, citric acid content, and acidity. For whites it is more correlated with sulfur dioxide, density, sugar, and alcohol
+
+
+
+## 2. Model Development PCA,RPART
+
+```{r}
+#setting up test - train 75-25
+
+smp_size_red <- floor(0.75 * nrow(wines_red))
+smp_size_white <- floor(0.75 * nrow(wines_white))
+
+## set the seed to make partition reproducible
+set.seed(123)
+
+red_train_ind <- sample(seq_len(nrow(wines_red)), size = smp_size_red)
+white_train_ind <- sample(seq_len(nrow(wines_white)), size = smp_size_white)
+
+red_train <- wines_red[red_train_ind, ]
+red_test <- wines_red[-red_train_ind, ]
+
+white_train <- wines_white[white_train_ind, ]
+white_test <- wines_white[-white_train_ind, ]
+
+
+red_combi<- rbind(red_train, red_test)
+white_combi<- rbind(white_train, white_test)
+
+red_my_data <- subset(red_combi, select = -c(quality))
+white_my_data <- subset(white_combi, select = -c(quality))
+
+str(red_my_data)
+str(white_my_data)
+```
+
+## PCA TEST TRAIN Splits
+
+```{r}
+pca.red_train <- red_my_data[1:nrow(red_train),]
+pca.red_test<- red_my_data[-(1:nrow(red_train)),]
+
+pca.white_train<-white_my_data[1:nrow(white_train),]
+pca.white_test<- white_my_data[-(1:nrow(white_train)),]
+
+```
+
+
+
+
+## Determining Principal components Variance for Train data
+```{r}
+prin_comp_red <- prcomp(pca.red_train, scale. = T)
+summary(prin_comp_red)
+
+prin_comp_white <- prcomp(pca.white_train, scale. = T)
+summary(prin_comp_white)
+
+biplot(prin_comp_red, cex = .4,scale = 0)
+biplot(prin_comp_white, cex = .4,scale = 0)
+```
+
+## plotting cumulative PCA graphs
+```{r warning = FALSE}
+#Using PCA modelling extra advice https://www.analyticsvidhya.com/blog/2016/03/pca-practical-guide-principal-component-analysis-python/
+
+#std.dev of each prin comp
+std_dev_red <- prin_comp_red$sdev
+std_dev_white <- prin_comp_white$sdev
+
+#compute var
+prin_var_red <- std_dev_red^2
+prin_var_white <- std_dev_white^2
+
+#check var of first 10 
+prin_var_red[1:10]
+prin_var_white[1:10]
+
+
+#proportion of variance explained
+prop_var_ex_red <- prin_var_red/sum(prin_var_red)
+prop_var_ex_red
+prop_var_ex_white <- prin_var_white/sum(prin_var_white)
+prop_var_ex_white
+ 
+
+plot(prop_var_ex_red, xlab = "Principal Component - Red",
+             ylab = "Proportion of Variance Explained",
+             type = "b")
+plot(prop_var_ex_white, xlab = "Principal Component - White",
+             ylab = "Proportion of Variance Explained",
+             type = "b")
+
+#cumulative plots
+ plot(cumsum(prop_var_ex_red), xlab = "Principal Component - Red",
+              ylab = "Cumulative Proportion of Variance Explained",
+              type = "b")
+ plot(cumsum(prop_var_ex_white), xlab = "Principal Component -White",
+              ylab = "Cumulative Proportion of Variance Explained",
+              type = "b")
+
+```
+
+Useful components were determined through determining the proportion of variance explained by each component. This shows that for red wine the first prinicpal component explains 22.6% variance, second explains 20.3%, and third explains 10.3%.  red wine the first prinicpal component explains 29.9% variance, second explains 12.8%, and third explains 11.0%. 10  components can cover over 95% variance in both cases
+
+## predicting with PCA,Rpart
+```{r}
+#add a training set with principal components
+red_train.data <- data.frame(quality = red_train$quality, prin_comp_red$x)
+white_train.data <- data.frame(quality = white_train$quality, prin_comp_white$x)
+
+#we are interested in first 10 PCAs
+red_train.data <- red_train.data[,1:10]
+white_train.data <- white_train.data[,1:10]
+
+#run a decision tree
+#install.packages("rpart")
+library(rpart)
+
+red_rpart.model <- rpart(quality ~ .,data = red_train.data, method = "anova")
+white_rpart.model <- rpart(quality ~ .,data = white_train.data, method = "anova")
+
+#transform test into PCA
+red_test.data <- predict(prin_comp_red, newdata = pca.red_test)
+white_test.data <- predict(prin_comp_white, newdata = pca.white_test)
+
+red_test.data <- as.data.frame(red_test.data)
+white_test.data <- as.data.frame(white_test.data)
+
+#select the first 10 components
+red_test.data <- red_test.data[,1:10]
+white_test.data <- white_test.data[,1:10]
+
+#make prediction on test data
+red_rpart.prediction <- predict(red_rpart.model, red_test.data)
+white_rpart.prediction <- predict(white_rpart.model, white_test.data)
+```
+
+```{r }
+table(red_test$quality,red_rpart.prediction)
+table(white_test$quality,white_rpart.prediction)
+
+# Model performance 
+red_modelPerfomance = data.frame( 
+                    RMSE = RMSE(red_rpart.prediction, red_test$quality), 
+                     R2 = R2(red_rpart.prediction, red_test$quality))
+
+white_modelPerfomance = data.frame( 
+                    RMSE = RMSE(white_rpart.prediction, red_test$quality), 
+                     R2 = R2(white_rpart.prediction, white_test$quality))
+
+
+
+print(red_modelPerfomance) 
+print(white_modelPerfomance) 
+```
+Overall the pca model was not that successfull the RMSE, square root of the variance of the residuals, was .6764 which is so-so considering the range. the r squared value is extraordinarily weak indicating some bad matches in quality guesses. This may be due to specific factors such as regions in france, etc accounting for wine quality.
+
+
+## 3. Decisions
+The decisions arent quite enough to yield proper decisions. The Exploratory Analysis did give some insight into which properties of the wine to give the most care towards when focused on quality for both red and white wine. It showed that for red's quality is most correlated with alcohol, sulphates, citric acid content, and acidity. For whites it is more correlated with sulfur dioxide, density, sugar, and alcohol. While this correlation was apparent the model using both rpart and PCA could did not yield an ideal predictor for quality. 
+
+
